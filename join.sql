@@ -1,96 +1,131 @@
-SELECT matchid, player FROM goal WHERE teamid = 'GER';
+-- 1. All goals by Germany
+SELECT matchid, player
+FROM goal
+WHERE teamid = 'GER';
 
-SELECT id, stadium, team1, team2 FROM game WHERE id = (SELECT matchid FROM goal WHERE player LIKE '%Bender');
-
-SELECT player, teamid, stadium, mdate FROM goal 
-JOIN game ON (goal.matchid = game.id) 
-JOIN eteam ON (eteam.id = goal.teamid) 
-WHERE teamname = 'Germany';
-
-SELECT team1, team2, player FROM game JOIN goal ON (game.id = goal.matchid) WHERE player LIKE 'Mario%';
-
-SELECT player, teamid, coach, gtime from goal JOIN eteam ON goal.teamid = eteam.id WHERE gtime <=10; 
-
-SELECT mdate, teamname FROM game JOIN eteam ON game.team1 = eteam.id WHERE coach = 'Fernando Santos';
-
-SELECT player FROM goal JOIN game ON goal.matchid = game.id WHERE stadium LIKE 'National Stadium, W%';
-
-SELECT DISTINCT player FROM goal JOIN game ON goal.matchid = game.id 
-WHERE (team1 = 'GER' OR team2 = 'GER') AND teamid != 'GER';
-
-SELECT teamname, COUNT(*) FROM eteam JOIN goal ON eteam.id = goal.teamid GROUP BY teamname;
-
-SELECT stadium, COUNT(*) FROM game JOIN goal ON game.id = goal.matchid GROUP BY stadium;
-
-SELECT game.id, game.mdate, COUNT(*)
+-- 2. Game info for match with player like '%Bender'
+SELECT id, stadium, team1, team2
 FROM game
-JOIN goal
-ON game.id = goal.matchid
-WHERE (game.team1 = 'POL' OR game.team2 = 'POL')
-GROUP BY game.id, game.mdate
+WHERE id = (
+    SELECT matchid
+    FROM goal
+    WHERE player LIKE '%Bender'
+);
 
-SELECT matchid, mdate, COUNT(*) FROM goal JOIN game ON goal.matchid = game.id 
-WHERE (game.team1 = 'GER' OR game.team2 = 'GER') AND teamid = 'GER' GROUP BY matchid, mdate;
+-- 3. German players with match details
+SELECT go.player, go.teamid, g.stadium, g.mdate
+FROM goal AS go
+JOIN game AS g ON go.matchid = g.id
+JOIN eteam AS e ON e.id = go.teamid
+WHERE e.teamname = 'Germany';
 
-SELECT game.mdate, 
-       game.team1, 
-       SUM(CASE WHEN goal.teamid = game.team1
-           THEN 1
-           ELSE 0
-           END) AS score1,
-       game.team2,
-       SUM(CASE WHEN goal.teamid = game.team2
-           THEN 1
-           ELSE 0
-           END) AS score2
-FROM game
-LEFT JOIN goal
-ON (game.id = goal.matchid)
-GROUP BY mdate, team1, team2 ORDER by mdate, matchid, team1, team2
+-- 4. Matches where a player named 'Mario%' scored
+SELECT g.team1, g.team2, go.player
+FROM game AS g
+JOIN goal AS go ON g.id = go.matchid
+WHERE go.player LIKE 'Mario%';
 
-/*QUIZZ*/
+-- 5. Goals scored in first 10 minutes
+SELECT go.player, go.teamid, e.coach, go.gtime
+FROM goal AS go
+JOIN eteam AS e ON go.teamid = e.id
+WHERE go.gtime <= 10;
 
-/*1*/
-/*game  JOIN goal ON (id=matchid)*/
+-- 6. Matches coached by Fernando Santos
+SELECT g.mdate, e.teamname
+FROM game AS g
+JOIN eteam AS e ON g.team1 = e.id
+WHERE e.coach = 'Fernando Santos';
 
-/*2*/
-/* matchid, teamid, player, gtime, id, teamname, coach*/
+-- 7. Players who scored at 'National Stadium, Warsaw'
+SELECT go.player
+FROM goal AS go
+JOIN game AS g ON go.matchid = g.id
+WHERE g.stadium LIKE 'National Stadium, W%';
 
-/*3*/
-SELECT player, teamid, COUNT(*)
-FROM game JOIN goal ON matchid = id
-WHERE (team1 = "GRE" OR team2 = "GRE")
-AND teamid != 'GRE'
-GROUP BY player, teamid;
+-- 8. Players who scored against Germany
+SELECT DISTINCT go.player
+FROM goal AS go
+JOIN game AS g ON go.matchid = g.id
+WHERE (g.team1 = 'GER' OR g.team2 = 'GER')
+  AND go.teamid != 'GER';
 
-/*4*/
-SELECT DISTINCT teamid, mdate
-FROM goal JOIN game on (matchid=id)
-WHERE mdate = '9 June 2012';
-/*
-DEN	9 June 2012
-GER	9 June 2012*/
+-- 9. Goals per team
+SELECT e.teamname, COUNT(*) AS goals
+FROM eteam AS e
+JOIN goal AS go ON e.id = go.teamid
+GROUP BY e.teamname;
 
-/*5*/
-SELECT DISTINCT player, teamid 
-FROM game JOIN goal ON matchid = id 
-WHERE stadium = 'National Stadium, Warsaw' 
-AND (team1 = 'POL' OR team2 = 'POL')
-AND teamid != 'POL'
+-- 10. Goals per stadium
+SELECT g.stadium, COUNT(*) AS goals
+FROM game AS g
+JOIN goal AS go ON g.id = go.matchid
+GROUP BY g.stadium;
 
-/*6*/
-SELECT DISTINCT player, teamid, gtime
-FROM game JOIN goal ON matchid = id
-WHERE stadium = 'Stadion Miejski (Wroclaw)'
-AND (( teamid = team2 AND team1 != 'ITA') OR ( teamid = team1 AND team2 != 'ITA')) 
+-- 11. Goals in matches involving Poland
+SELECT g.id, g.mdate, COUNT(*) AS goals
+FROM game AS g
+JOIN goal AS go ON g.id = go.matchid
+WHERE g.team1 = 'POL' OR g.team2 = 'POL'
+GROUP BY g.id, g.mdate;
 
-/*7*/
-SELECT teamname, COUNT(*)
-FROM eteam JOIN goal ON teamid = id
-GROUP BY teamname
-HAVING COUNT(*) < 3
-/*
-Netherlands	2
-Poland	2
-Republic of Ireland	1
-Ukraine	2*/
+-- 12. Germany goals in Germany matches
+SELECT go.matchid, g.mdate, COUNT(*) AS goals
+FROM goal AS go
+JOIN game AS g ON go.matchid = g.id
+WHERE (g.team1 = 'GER' OR g.team2 = 'GER')
+  AND go.teamid = 'GER'
+GROUP BY go.matchid, g.mdate;
+
+-- 13. Match results with calculated scores
+SELECT g.mdate, 
+       g.team1, 
+       SUM(CASE WHEN go.teamid = g.team1 THEN 1 ELSE 0 END) AS score1,
+       g.team2,
+       SUM(CASE WHEN go.teamid = g.team2 THEN 1 ELSE 0 END) AS score2
+FROM game AS g
+LEFT JOIN goal AS go ON g.id = go.matchid
+GROUP BY g.mdate, g.team1, g.team2
+ORDER BY g.mdate, g.team1, g.team2;
+
+-- QUIZ ANSWERS
+
+-- Q3. Non-Greek scorers in Greek matches
+SELECT go.player, go.teamid, COUNT(*) AS goals
+FROM game AS g
+JOIN goal AS go ON go.matchid = g.id
+WHERE (g.team1 = 'GRE' OR g.team2 = 'GRE')
+  AND go.teamid != 'GRE'
+GROUP BY go.player, go.teamid;
+
+-- Q4. Teams scoring on 9 June 2012
+SELECT DISTINCT go.teamid, g.mdate
+FROM goal AS go
+JOIN game AS g ON go.matchid = g.id
+WHERE g.mdate = '9 June 2012';
+
+-- Q5. Non-Polish scorers in Polish matches at Warsaw stadium
+SELECT DISTINCT go.player, go.teamid
+FROM game AS g
+JOIN goal AS go ON go.matchid = g.id
+WHERE g.stadium = 'National Stadium, Warsaw'
+  AND (g.team1 = 'POL' OR g.team2 = 'POL')
+  AND go.teamid != 'POL';
+
+-- Q6. Scorers in Wroclaw stadium excluding Italy matches
+SELECT DISTINCT go.player, go.teamid, go.gtime
+FROM game AS g
+JOIN goal AS go ON go.matchid = g.id
+WHERE g.stadium = 'Stadion Miejski (Wroclaw)'
+  AND (
+       (go.teamid = g.team2 AND g.team1 != 'ITA') 
+       OR 
+       (go.teamid = g.team1 AND g.team2 != 'ITA')
+      );
+
+-- Q7. Teams with less than 3 goals
+SELECT e.teamname, COUNT(*) AS goals
+FROM eteam AS e
+JOIN goal AS go ON go.teamid = e.id
+GROUP BY e.teamname
+HAVING COUNT(*) < 3;
