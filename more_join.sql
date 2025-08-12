@@ -1,111 +1,163 @@
+-- 1. Movies from 1962
 SELECT id, title
-FROM movie
-WHERE yr=1962;
+FROM movie AS m
+WHERE yr = 1962;
 
-SELECT yr FROM movie WHERE title = 'Citizen Kane';
+-- 2. Year of 'Citizen Kane'
+SELECT yr
+FROM movie AS m
+WHERE title = 'Citizen Kane';
 
-SELECT  id, title, yr FROM movie WHERE title LIKE 'Star Trek%' ORDER BY yr;
+-- 3. All 'Star Trek' movies by year
+SELECT id, title, yr
+FROM movie AS m
+WHERE title LIKE 'Star Trek%'
+ORDER BY yr;
 
-SELECT id FROM actor WHERE name = 'Glenn Close';
+-- 4. Actor ID for 'Glenn Close'
+SELECT id
+FROM actor AS a
+WHERE name = 'Glenn Close';
 
-SELECT id FROM movie WHERE title = 'Casablanca';
+-- 5. Movie ID for 'Casablanca'
+SELECT id
+FROM movie AS m
+WHERE title = 'Casablanca';
 
-SELECT actor.name FROM casting JOIN actor ON (actor.id = casting.actorid) 
-WHERE movieid = '11768';
+-- 6. Actors in movie with ID 11768
+SELECT a.name
+FROM casting AS c
+JOIN actor AS a ON a.id = c.actorid
+WHERE c.movieid = 11768;
 
-SELECT actor.name FROM casting JOIN actor ON actor.id = casting.actorid JOIN movie ON movie.id = casting.movieid 
-WHERE title = 'Alien'
+-- 7. Actors in 'Alien'
+SELECT a.name
+FROM casting AS c
+JOIN actor AS a ON a.id = c.actorid
+JOIN movie AS m ON m.id = c.movieid
+WHERE m.title = 'Alien';
 
-SELECT title FROM movie 
-JOIN casting ON casting.movieid = movie.id 
-JOIN actor ON actor.id = casting.actorid 
-WHERE name LIKE 'Harrison Ford';
+-- 8. Movies with 'Harrison Ford'
+SELECT m.title
+FROM movie AS m
+JOIN casting AS c ON m.id = c.movieid
+JOIN actor AS a ON a.id = c.actorid
+WHERE a.name = 'Harrison Ford';
 
-SELECT title FROM movie 
-INNER JOIN casting ON movie.id =casting.movieid 
-INNER JOIN actor ON casting.actorid=actor.id 
-WHERE name LIKE 'Harrison Ford' AND casting.ord<>1;
+-- 9. Movies with 'Harrison Ford' but not as lead
+SELECT m.title
+FROM movie AS m
+JOIN casting AS c ON m.id = c.movieid
+JOIN actor AS a ON a.id = c.actorid
+WHERE a.name = 'Harrison Ford'
+  AND c.ord <> 1;
 
-SELECT title,actor.name FROM movie 
-INNER JOIN casting ON movie.id=casting.movieid
-INNER JOIN actor ON actor.id=casting.actorid
-WHERE yr='1962' AND ord=1;
+-- 10. Lead actors in 1962 movies
+SELECT m.title, a.name
+FROM movie AS m
+JOIN casting AS c ON m.id = c.movieid
+JOIN actor AS a ON a.id = c.actorid
+WHERE m.yr = 1962
+  AND c.ord = 1;
 
-SELECT yr,COUNT(title) FROM
-  movie JOIN casting ON movie.id=movieid
-        JOIN actor   ON actorid=actor.id
-WHERE name='Rock Hudson'
-GROUP BY yr
-HAVING COUNT(title) > 2
+-- 11. Years where Rock Hudson acted in more than 2 movies
+SELECT m.yr, COUNT(m.title) AS movie_count
+FROM movie AS m
+JOIN casting AS c ON m.id = c.movieid
+JOIN actor AS a ON a.id = c.actorid
+WHERE a.name = 'Rock Hudson'
+GROUP BY m.yr
+HAVING COUNT(m.title) > 2;
 
-SELECT title, name FROM movie JOIN casting ON (movieid=movie.id AND 
-                                               ord = 1)
-                              JOIN actor ON (actorid=actor.id)
-WHERE movie.id IN (SELECT movieid FROM casting
-                    WHERE actorid IN (
-                    SELECT id FROM actor
-                     WHERE name='Julie Andrews'))
+-- 12. Movies where Julie Andrews was in the cast, showing their leads
+SELECT m.title, a.name
+FROM movie AS m
+JOIN casting AS c ON m.id = c.movieid AND c.ord = 1
+JOIN actor AS a ON a.id = c.actorid
+WHERE m.id IN (
+    SELECT c.movieid
+    FROM casting AS c
+    JOIN actor AS a ON a.id = c.actorid
+    WHERE a.name = 'Julie Andrews'
+);
 
-SELECT name FROM actor 
-JOIN casting ON casting.actorid = actor.id 
-WHERE ord = '1' GROUP BY actor.name HAVING COUNT(*) > 14 ORDER BY name;
+-- 13. Actors with more than 14 lead roles
+SELECT a.name
+FROM actor AS a
+JOIN casting AS c ON a.id = c.actorid
+WHERE c.ord = 1
+GROUP BY a.name
+HAVING COUNT(*) > 14
+ORDER BY a.name;
 
-SELECT title, COUNT(*) AS co FROM casting 
-JOIN actor ON casting.actorid = actor.id 
-JOIN movie ON movie.id = casting.movieid WHERE yr = '1978' GROUP BY title ORDER BY co DESC, title;
+-- 14. Movies in 1978 with actor count, sorted
+SELECT m.title, COUNT(*) AS co
+FROM casting AS c
+JOIN actor AS a ON c.actorid = a.id
+JOIN movie AS m ON m.id = c.movieid
+WHERE m.yr = 1978
+GROUP BY m.title
+ORDER BY co DESC, m.title;
 
-SELECT name FROM actor 
-JOIN casting ON casting.actorid = actor.id 
-JOIN movie ON casting.movieid = movie.id 
-WHERE movie.id IN (SELECT movie.id FROM movie 
-                   JOIN casting ON casting.movieid = movie.id 
-                   JOIN actor ON casting.actorid = actor.id 
-                   WHERE name LIKE 'Art Garfunkel')
-AND name != 'Art Garfunkel';
-/*QUIZZ*/
+-- 15. Co-actors of Art Garfunkel
+SELECT a.name
+FROM actor AS a
+JOIN casting AS c ON a.id = c.actorid
+JOIN movie AS m ON m.id = c.movieid
+WHERE m.id IN (
+    SELECT m.id
+    FROM movie AS m
+    JOIN casting AS c ON m.id = c.movieid
+    JOIN actor AS a ON c.actorid = a.id
+    WHERE a.name = 'Art Garfunkel'
+)
+AND a.name != 'Art Garfunkel';
 
-/*1*/
-SELECT name
-FROM actor INNER JOIN movie ON actor.id = director
-WHERE gross < budget
+-- QUIZ
 
-/*2*/
+-- Q1. Actors who directed a movie where gross < budget
+SELECT a.name
+FROM actor AS a
+JOIN movie AS m ON a.id = m.director
+WHERE m.gross < m.budget;
+
+-- Q2. All actors and their movies
 SELECT *
-FROM actor JOIN casting ON actor.id = actorid
-JOIN movie ON movie.id = movieid
+FROM actor AS a
+JOIN casting AS c ON a.id = c.actorid
+JOIN movie AS m ON m.id = c.movieid;
 
-/*3*/
-SELECT name, COUNT(movieid)
-FROM casting JOIN actor ON actorid=actor.id
-WHERE name LIKE 'John %'
-GROUP BY name ORDER BY 2 DESC
+-- Q3. Actors named 'John%' and their movie counts
+SELECT a.name, COUNT(c.movieid) AS movie_count
+FROM casting AS c
+JOIN actor AS a ON c.actorid = a.id
+WHERE a.name LIKE 'John %'
+GROUP BY a.name
+ORDER BY movie_count DESC;
 
-/*4*/
-SELECT title 
-FROM movie JOIN casting ON (movieid=movie.id)
-JOIN actor   ON (actorid=actor.id)
-WHERE name='Paul Hogan' AND ord = 1
-/*Table-B
-"Crocodile" Dundee
-Crocodile Dundee in Los Angeles
-Flipper
-Lightning Jack*/
+-- Q4. Movies where Paul Hogan was the lead
+SELECT m.title
+FROM movie AS m
+JOIN casting AS c ON m.id = c.movieid
+JOIN actor AS a ON c.actorid = a.id
+WHERE a.name = 'Paul Hogan'
+  AND c.ord = 1;
 
-/*5*/
-SELECT name
-FROM movie JOIN casting ON movie.id = movieid
-JOIN actor ON actor.id = actorid
-WHERE ord = 1 AND director = 351
+-- Q5. Lead actors for movies directed by actor with ID 351
+SELECT a.name
+FROM movie AS m
+JOIN casting AS c ON m.id = c.movieid
+JOIN actor AS a ON a.id = c.actorid
+WHERE c.ord = 1
+  AND m.director = 351;
 
-/*6*/
-/*link the director column in movies with the primary key in actor
-connect the primary keys of movie and actor via the casting table*/
+-- Q6. Linking director to actor and casting to movie/actor
+-- (Relationship explanation; not a query)
 
-/*7*/
-SELECT title, yr 
-FROM movie, casting, actor 
-WHERE name='Robert De Niro' AND movieid=movie.id AND actorid=actor.id AND ord = 3
-/*Table-B
-A Bronx Tale	1993
-Bang the Drum Slowly	1973
-Limitless	2011*/
+-- Q7. Robert De Niro’s movies where he was the 3rd billed actor
+SELECT m.title, m.yr
+FROM movie AS m
+JOIN casting AS c ON m.id = c.movieid
+JOIN actor AS a ON c.actorid = a.id
+WHERE a.name = 'Robert De Niro'
+  AND c.ord = 3;
